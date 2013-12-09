@@ -119,6 +119,26 @@ It's pretty basic so far. Needs some work.
 
 Unions and nested structs are not supported yet. I'll add that soon.
 
+# Tests
+
+destructor has a test suite. Run it by installing `nose`:
+
+```bash
+pip install nose
+```
+
+And either executing it via setuptools:
+
+```bash
+python setup.py nosetests
+```
+
+Or by using the nose test runner directly:
+
+```bash
+nosetests
+```
+
 # License
 
 Buy snare a beer. Do it.
