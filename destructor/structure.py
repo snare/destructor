@@ -11,7 +11,7 @@ ENDIAN_BIG = 'big'
 
 
 def sizeof(obj):
-    return obj.size()
+    return obj.size
 
 
 class NodeFinder(object):

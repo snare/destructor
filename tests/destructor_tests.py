@@ -163,6 +163,9 @@ def test_subclass_m_char():
 def test_subclass_members():
     assert len(s3._members) == 19
 
+def test_sizeof():
+    assert sizeof(s1) == 100
+
 # check member variable sizes and format strings
 
 def test_m_char_size():
