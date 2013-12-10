@@ -58,11 +58,46 @@ TYPEDEF_DECL = TYPEDEFS + """
 UINT32 test;
 """
 
+MULTISTRUCT = """
+typedef unsigned int uint32_t;
+typedef uint32_t UINT32;
+typedef unsigned long long  uint64_t;
+struct TestNest {
+    uint32_t            m1;
+    uint64_t            m2;
+    struct {
+        uint32_t        n1;
+        uint32_t        n2;
+    } m3;
+};
+struct Test {
+    void *              m_void_p;
+    uint32_t            m_uint32_t;
+    struct TestNest     m_nest;
+};
+"""
+
+MULTIDATA = (
+    "\x42\x42\x42\x42\x42\x42\x42\x42"
+    "\x43\x43\x43\x43"
+    "\x44\x44\x44\x44"
+    "\x45\x45\x45\x45\x45\x45\x45\x45"
+    "\x46\x46\x46\x46"
+    "\x47\x47\x47\x47"
+)
+
+
 class TestStruct(Structure):
     source = STRUCT
 
+
+class TestStructNest(Structure):
+    source = MULTISTRUCT
+    name = "Test"
+
+
 def setup():
-    global s1, s2, s3, s4, s5, s6, s7
+    global s1, s2, s3, s4, s5, s6, s7, s8
     s1 = Structure(source=STRUCT)
     s2 = Structure(source=STRUCT, mode=MODE_ILP32)
     s3 = TestStruct()
@@ -81,6 +116,10 @@ def setup():
     f = open("tests/test.bin", "r+b")
     s7.read(file("tests/test.bin"))
     f.close()
+
+    s8 = TestStructNest()
+    s8.parse(MULTIDATA)
+
 
 def teardown():
     try:
@@ -593,5 +632,49 @@ def test_file_write():
     f.close()
     d = file("tests/test2.bin").read()
     assert d == DATA
+
+# test nested structs
+
+def test_nested_m_void_p():
+    assert repr(s8.m_void_p) == "BBBBBBBB"
+
+def test_nested_m_uint32_t():
+    assert repr(s8.m_uint32_t) == "CCCC"
+
+def test_nested_size():
+    assert s8.size == 32
+
+def test_nested_m_nest():
+    assert type(s8.m_nest) == Structure
+
+def test_nested_m_nest_size():
+    assert s8.m_nest.size == 20
+
+def test_nested_m_nest_m1():
+    assert repr(s8.m_nest.m1) == "DDDD"
+
+def test_nested_m_nest_m2():
+    assert repr(s8.m_nest.m2) == "EEEEEEEE"
+
+def test_nested_m_nest_m3():
+    assert type(s8.m_nest.m3) == Structure
+
+def test_nested_m_nest_m3_size():
+    assert s8.m_nest.m3.size ==  8
+
+def test_nested_m_nest_m3_n1():
+    assert type(s8.m_nest.m3.n1) == StructureMember
+
+def test_nested_m_nest_m3_n1_size():
+    assert s8.m_nest.m3.n1.size == 4
+
+def test_nested_m_nest_m3_n1_value():
+    assert s8.m_nest.m3.n1.value == 0x46464646
+
+def test_nested_m_nest_m3_n2():
+    assert type(s8.m_nest.m3.n2) == StructureMember
+
+def test_nested_m_nest_m3_n2_value():
+    assert s8.m_nest.m3.n2.value == 0x47474747
 
 

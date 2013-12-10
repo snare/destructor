@@ -83,6 +83,14 @@ class TypeResolver(object):
         # join the type name components
         return ' '.join(ident.names)
 
+    def find_struct_node(self, thetype):
+        try:
+            # find a Struct node
+            s = NodeFinder(pycparser.c_ast.Struct).find(thetype)[0]
+        except IndexError:
+            s = None
+        return s
+
 
 class StructureMember(object):
     """
@@ -121,10 +129,9 @@ class StructureMember(object):
     _value = None
     _endian = ENDIAN_LITTLE
 
-    def __init__(self, name=None, type_name=None, node=None, mode=MODE_LP64, array_len=1, index=0, endian=ENDIAN_LITTLE):
+    def __init__(self, name=None, type_name=None, node=None, mode=MODE_LP64, array_len=1, endian=ENDIAN_LITTLE):
         self._basic_type = type_name.replace('unsigned', '').replace('signed', '').strip()
         self._full_type = type_name
-        self._index = index
         self._array_len = array_len
         self._endian = endian
 
@@ -213,6 +220,9 @@ class Structure(object):
     _members = {}
     _endian = ENDIAN_LITTLE
 
+    source = None
+    name = None
+
     def __init__(self, source=None, filename=None, decl=None, ast=None, mode=MODE_LP64, endian=ENDIAN_LITTLE):
         self._endian = endian
 
@@ -222,12 +232,21 @@ class Structure(object):
 
         # parse source/file if we got some
         if self.source or filename:
-            ss = StructureSet(source=self.source, filename=filename)
-            try:
-                decl = ss.decls[0]
-                ast = ss.ast
-            except IndexError:
-                raise IndexError("No struct declaration was found")
+            # create a structure set
+            self._ss = StructureSet(source=self.source, filename=filename)
+            ast = self._ss.ast
+            
+            # find the structure by name if one was given
+            if self.name:
+                decl = self._ss.decl_named(self.name)
+                if not decl:
+                    raise NameError("No struct declaration was found named '%s'" % self.name)
+            else:
+                # otherwise grab the first struct
+                try:
+                    decl = self._ss.decls[0]
+                except IndexError:
+                    raise IndexError("No struct declaration was found")
 
         # keep references to our ast and decl
         self._ast = ast
@@ -267,22 +286,34 @@ class Structure(object):
                 type_name = self._tr.name_for_type(t) + ' *'
 
                 # instantiate the member
-                s = StructureMember(name=node.name, node=node, type_name=type_name, mode=mode, index=index,
-                                    endian=self._endian)
-                self._members[node.name] = s
-                self._members_ord.append(s)
+                member = StructureMember(name=node.name, node=node, type_name=type_name, mode=mode,
+                                         endian=self._endian)
+                self._members[node.name] = member
+                self._members_ord.append(member)
             elif type(node.type) == pycparser.c_ast.TypeDecl:
-                # resolve this type if it's a typedef
-                t = self._tr.resolve_type(node.type)
+                # see if this is a nested struct
+                s = self._tr.find_struct_node(node.type)
+                if s:
+                    # it is, find the first declaration of this struct name
+                    if self._ss:
+                        s = self._ss.decl_named(s.name)
 
-                # get its name
-                type_name = self._tr.name_for_type(t)
+                    # and process it
+                    member = Structure(decl=s, ast=self._ast, mode=mode, endian=self._endian)
+                else:
+                    # otherwise, resolve this type if it's a typedef
+                    t = self._tr.resolve_type(node.type)
 
-                # instantiate the member
-                s = StructureMember(name=node.name, node=node, type_name=type_name, mode=mode, index=index,
-                                    endian=self._endian)
-                self._members[node.name] = s
-                self._members_ord.append(s)
+                    # get its name
+                    type_name = self._tr.name_for_type(t)
+
+                    # instantiate the member
+                    member = StructureMember(name=node.name, node=node, type_name=type_name, mode=mode, 
+                                             endian=self._endian)
+
+                # store the new member
+                self._members[node.name] = member
+                self._members_ord.append(member)
             elif type(node.type) == pycparser.c_ast.ArrayDecl:
                 # find the type node hanging off this array node and resolve it
                 t = NodeFinder(pycparser.c_ast.TypeDecl).find(node)[0]
@@ -295,10 +326,10 @@ class Structure(object):
                 array_len = int(node.type.dim.value)
 
                 # instantiate the member
-                s = StructureMember(name=node.name, node=node, type_name=type_name, mode=mode, index=index,
-                                    endian=self._endian, array_len=array_len)
-                self._members[node.name] = s
-                self._members_ord.append(s)
+                member = StructureMember(name=node.name, node=node, type_name=type_name, mode=mode,
+                                         endian=self._endian, array_len=array_len)
+                self._members[node.name] = member
+                self._members_ord.append(member)
             elif type(node.type) == pycparser.c_ast.Struct:
                 raise Exception("Nested structs aren't supported yet")
             else:
@@ -347,11 +378,18 @@ class StructureSet(object):
     def parse_file(self, filename):
         self.parse_source(file(filename).read())
 
-    def struct_named(self, name):
+    def decl_named(self, name):
         try:
             decl = [d for d in self.decls if d.name == name][0]
-            st = Structure(decl)
         except IndexError:
+            decl = None
+        return decl
+
+    def struct_named(self, name):
+        decl = self.decl_named(name);
+        if decl:
+            st = Structure(decl)
+        else:
             st = None
         return st
 

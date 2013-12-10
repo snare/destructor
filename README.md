@@ -2,7 +2,7 @@
 
 **The gizmo from Pismo (Beach)**
 
-`destructor` is a library for processing binary data. There are many binary processing libraries; this one is mine. `destructor` takes a declarative approach to binary processing somewhat similar to `construct` and `protlib`; however, instead of declaring the structure of the data using Python code, `destructor` parses C struct declarations to determine the structure of the data. As a result, it is quick and easy to prototype.
+`destructor` is a library for processing binary data. There are many binary processing libraries; this one is mine. `destructor` takes a semi-declarative approach to binary processing similar to `construct` and `protlib`; however, instead of declaring the structure of the data using Python code, `destructor` parses C struct declarations to determine the structure of the data. As a result, it is quick and easy to prototype stuff if you have C struct declarations.
 
 # Installation
 
@@ -70,9 +70,11 @@ Instantiate the class and feed it some data.
 Grab a string representation of the struct.
 
     >>> repr(thing)
-    'A\xf2\x03\x01\xff\xf0\xff\xf0\xff\x00\xff\x11\xff\x00\xff"\xff\xff\xff\x80\x00\x00\x11\x00\xff\xff\xff\x80\x00\x00
-    \x11\x00\xff\xff\xff\x80\x00\x00\x11\x00\xff\xff\xff\x80\x00\x00\x11\x00\x00\x00\x11"\x00\xff\xff\x80\x00\x003\x00A
-    AAAAAAAAAAAAABB\xff\xff\xff\x80\x00\x00D\x00\xff\xff\xff\x80\x00\x00U\x00\x00\x00\x11\x00\x00\x00"\x00'
+    'A\xf2\x03\x01\xff\xf0\xff\xf0\xff\x00\xff\x11\xff\x00\xff"\xff\xff\xff\x80
+    \x00\x00\x11\x00\xff\xff\xff\x80\x00\x00\x11\x00\xff\xff\xff\x80\x00\x00\x11
+    \x00\xff\xff\xff\x80\x00\x00\x11\x00\x00\x00\x11"\x00\xff\xff\x80\x00\x003
+    \x00AAAAAAAAAAAAAABB\xff\xff\xff\x80\x00\x00D\x00\xff\xff\xff\x80\x00\x00U
+    \x00\x00\x00\x11\x00\x00\x00"\x00'
 
 Update a struct member and retrieve it.
 
@@ -88,9 +90,11 @@ Write the struct to file and read it back.
     >>> with open("temp.bin", "w+b") as f:
     ...     thing.write(f)
     >>> file("temp.bin").read()
-    'A\xf2\x03\x01\xff\xf0\xff\xf0\xff\x00\xff\x11\xff\x00\xff"\xff\xff\xff\x80\x00\x00\x11\x00\xff\xff\x00\x00\x00\x00
-    \x00\x00\xff\xff\xff\x80\x00\x00\x11\x00\xff\xff\xff\x80\x00\x00\x11\x00\x00\x00\x11"\x00\xff\xff\x80\x00\x003\x00A
-    AAAAAAAAAAAAABB\xff\xff\xff\x80\x00\x00D\x00\xff\xff\xff\x80\x00\x00U\x00\x00\x00\x11\x00\x00\x00"\x00'
+    'A\xf2\x03\x01\xff\xf0\xff\xf0\xff\x00\xff\x11\xff\x00\xff"\xff\xff\xff\x80
+    \x00\x00\x11\x00\xff\xff\x00\x00\x00\x00\x00\x00\xff\xff\xff\x80\x00\x00\x11
+    \x00\xff\xff\xff\x80\x00\x00\x11\x00\x00\x00\x11"\x00\xff\xff\x80\x00\x003
+    \x00AAAAAAAAAAAAAABB\xff\xff\xff\x80\x00\x00D\x00\xff\xff\xff\x80\x00\x00U
+    \x00\x00\x00\x11\x00\x00\x00"\x00'
 
 Endianness is determined by the `endian` parameter to `__init__`.
 
@@ -113,11 +117,15 @@ The size of longs and pointers is determined by the `mode` parameter to `__init_
     >>> thing.m_void_p.size
     8
 
+Nested structs are supported, see `destructor_tests.py` for examples. I will add some better examples sometime.
+
 # Caveats
 
 It's pretty basic so far. Needs some work.
 
-Unions and nested structs are not supported yet. I'll add that soon.
+Unions are not yet supported.
+
+Conditional parsing, array length depending on other fields, etc are not supported.
 
 # License
 
