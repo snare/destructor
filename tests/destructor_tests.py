@@ -4,8 +4,9 @@ from pycparser import c_parser, c_ast
 import os
 
 TYPEDEFS = """
-typedef unsigned int    uint32_t;
-typedef uint32_t        UINT32;
+typedef unsigned int        uint32_t;
+typedef uint32_t            UINT32;
+typedef unsigned long long  uint64_t;
 """
 
 STRUCT = TYPEDEFS + """
@@ -58,10 +59,7 @@ TYPEDEF_DECL = TYPEDEFS + """
 UINT32 test;
 """
 
-MULTISTRUCT = """
-typedef unsigned int uint32_t;
-typedef uint32_t UINT32;
-typedef unsigned long long  uint64_t;
+MULTISTRUCT = TYPEDEFS + """
 struct TestNest {
     uint32_t            m1;
     uint64_t            m2;
@@ -86,18 +84,46 @@ MULTIDATA = (
     "\x47\x47\x47\x47"
 )
 
+UNION = TYPEDEFS + """
+struct TestNest {
+    uint32_t            m1;
+    uint64_t            m2;
+    union {
+        uint64_t        n1;
+        void *          n2;
+    } m3;
+};
+struct Test {
+    void *              m_void_p;
+    uint32_t            m_uint32_t;
+    struct TestNest     m_nest;
+};
+"""
+
+UNIONDATA = (
+    "\x42\x42\x42\x42\x42\x42\x42\x42"
+    "\x43\x43\x43\x43"
+    "\x44\x44\x44\x44"
+    "\x45\x45\x45\x45\x45\x45\x45\x45"
+    "\x46\x46\x46\x46\x47\x47\x47\x47"
+)
+
 
 class TestStruct(Structure):
-    source = STRUCT
+    _source = STRUCT
 
 
 class TestStructNest(Structure):
-    source = MULTISTRUCT
-    name = "Test"
+    _source = MULTISTRUCT
+    _name = "Test"
+
+class TestNestUnion(Structure):
+    _source = UNION
+    _name = "Test"
 
 
 def setup():
-    global s1, s2, s3, s4, s5, s6, s7, s8
+    global s1, s2, s3, s4, s5, s6, s7, s8, s9, ss, s10, s11
     s1 = Structure(source=STRUCT)
     s2 = Structure(source=STRUCT, mode=MODE_ILP32)
     s3 = TestStruct()
@@ -119,6 +145,18 @@ def setup():
 
     s8 = TestStructNest()
     s8.parse(MULTIDATA)
+
+    s9 = TestNestUnion()
+    s9.parse(UNIONDATA)
+
+    ss = StructureSet(source=MULTISTRUCT)
+    TestStructFromSet = ss.struct_named("Test")
+    s10 = TestStructFromSet()
+    s10.parse(MULTIDATA)
+
+    classes = ss.all_structs()
+    s11 = classes[1]()
+    s11.parse(MULTIDATA)
 
 
 def teardown():
@@ -441,7 +479,7 @@ def test_m_UINT32_value():
 
 def test_parse_string():
     s1.parse(DATA)
-    assert repr(s1) == DATA
+    assert str(s1) == DATA
 
 # test values big endian
 
@@ -504,130 +542,130 @@ def test_m_UINT32_value_big_endian():
 
 def test_parse_string_big_endian():
     s5.parse(DATA)
-    assert repr(s5) == DATA
+    assert str(s5) == DATA
 
-# test repr values little endian
+# test str values little endian
 
-def test_m_char_repr():
-    assert repr(s4.m_char) == "\x41"
+def test_m_char_str():
+    assert str(s4.m_char) == "\x41"
 
-def test_m_signed_char_repr():
-    assert repr(s4.m_signed_char) == "\xF2"
+def test_m_signed_char_str():
+    assert str(s4.m_signed_char) == "\xF2"
 
-def test_m_unsigned_char_repr():
-    assert repr(s4.m_unsigned_char) == "\x03"
+def test_m_unsigned_char_str():
+    assert str(s4.m_unsigned_char) == "\x03"
 
-def test_m_bool_repr():
-    assert repr(s4.m_bool) == "\x01"
+def test_m_bool_str():
+    assert str(s4.m_bool) == "\x01"
 
-def test_m_short_repr():
-    assert repr(s4.m_short) == "\xFF\xF0"
+def test_m_short_str():
+    assert str(s4.m_short) == "\xFF\xF0"
 
-def test_m_unsigned_short_repr():
-    assert repr(s4.m_unsigned_short) == "\xFF\xF0"
+def test_m_unsigned_short_str():
+    assert str(s4.m_unsigned_short) == "\xFF\xF0"
 
-def test_m_int_repr():
-    assert repr(s4.m_int) == "\xFF\x00\xFF\x11"
+def test_m_int_str():
+    assert str(s4.m_int) == "\xFF\x00\xFF\x11"
 
-def test_m_unsigned_int_repr():
-    assert repr(s4.m_unsigned_int) == "\xFF\x00\xFF\x22"
+def test_m_unsigned_int_str():
+    assert str(s4.m_unsigned_int) == "\xFF\x00\xFF\x22"
 
-def test_m_long_repr():
-    assert repr(s4.m_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
+def test_m_long_str():
+    assert str(s4.m_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
 
-def test_m_unsigned_long_repr():
-    assert repr(s4.m_unsigned_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
+def test_m_unsigned_long_str():
+    assert str(s4.m_unsigned_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
 
-def test_m_long_long_repr():
-    assert repr(s4.m_long_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
+def test_m_long_long_str():
+    assert str(s4.m_long_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
 
-def test_m_unsigned_long_long_repr():
-    assert repr(s4.m_unsigned_long_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
+def test_m_unsigned_long_long_str():
+    assert str(s4.m_unsigned_long_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
 
-def test_m_float_repr():
-    assert repr(s4.m_float) == "\x00\x00\x11\x22"
+def test_m_float_str():
+    assert str(s4.m_float) == "\x00\x00\x11\x22"
 
-def test_m_double_repr():
-    assert repr(s4.m_double) == "\x00\xFF\xFF\x80\x00\x00\x33\x00"
+def test_m_double_str():
+    assert str(s4.m_double) == "\x00\xFF\xFF\x80\x00\x00\x33\x00"
 
-def test_m_string_repr():
-    assert repr(s4.m_string) == "AAAAAAAAAAAAAABB"
+def test_m_string_str():
+    assert str(s4.m_string) == "AAAAAAAAAAAAAABB"
 
-def test_m_void_p_repr():
-    assert repr(s4.m_void_p) == "\xFF\xFF\xFF\x80\x00\x00\x44\x00"
+def test_m_void_p_str():
+    assert str(s4.m_void_p) == "\xFF\xFF\xFF\x80\x00\x00\x44\x00"
 
-def test_m_char_p_repr():
-    assert repr(s4.m_char_p) == "\xFF\xFF\xFF\x80\x00\x00\x55\x00"
+def test_m_char_p_str():
+    assert str(s4.m_char_p) == "\xFF\xFF\xFF\x80\x00\x00\x55\x00"
 
-def test_m_uint32_t_repr():
-    assert repr(s4.m_uint32_t) == "\x00\x00\x11\x00"
+def test_m_uint32_t_str():
+    assert str(s4.m_uint32_t) == "\x00\x00\x11\x00"
 
-def test_m_UINT32_repr():
-    assert repr(s4.m_UINT32) == "\x00\x00\x22\x00"
+def test_m_UINT32_str():
+    assert str(s4.m_UINT32) == "\x00\x00\x22\x00"
 
-# test repr values big endian
+# test str values big endian
 
-def test_m_char_repr_big_endian():
-    assert repr(s5.m_char) == "\x41"
+def test_m_char_str_big_endian():
+    assert str(s5.m_char) == "\x41"
 
-def test_m_signed_char_repr_big_endian():
-    assert repr(s5.m_signed_char) == "\xF2"
+def test_m_signed_char_str_big_endian():
+    assert str(s5.m_signed_char) == "\xF2"
 
-def test_m_unsigned_char_repr_big_endian():
-    assert repr(s5.m_unsigned_char) == "\x03"
+def test_m_unsigned_char_str_big_endian():
+    assert str(s5.m_unsigned_char) == "\x03"
 
-def test_m_bool_repr_big_endian():
-    assert repr(s5.m_bool) == "\x01"
+def test_m_bool_str_big_endian():
+    assert str(s5.m_bool) == "\x01"
 
-def test_m_short_repr_big_endian():
-    assert repr(s5.m_short) == "\xFF\xF0"
+def test_m_short_str_big_endian():
+    assert str(s5.m_short) == "\xFF\xF0"
 
-def test_m_unsigned_short_repr_big_endian():
-    assert repr(s5.m_unsigned_short) == "\xFF\xF0"
+def test_m_unsigned_short_str_big_endian():
+    assert str(s5.m_unsigned_short) == "\xFF\xF0"
 
-def test_m_int_repr_big_endian():
-    assert repr(s5.m_int) == "\xFF\x00\xFF\x11"
+def test_m_int_str_big_endian():
+    assert str(s5.m_int) == "\xFF\x00\xFF\x11"
 
-def test_m_unsigned_int_repr_big_endian():
-    assert repr(s5.m_unsigned_int) == "\xFF\x00\xFF\x22"
+def test_m_unsigned_int_str_big_endian():
+    assert str(s5.m_unsigned_int) == "\xFF\x00\xFF\x22"
 
-def test_m_long_repr_big_endian():
-    assert repr(s5.m_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
+def test_m_long_str_big_endian():
+    assert str(s5.m_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
 
-def test_m_unsigned_long_repr_big_endian():
-    assert repr(s5.m_unsigned_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
+def test_m_unsigned_long_str_big_endian():
+    assert str(s5.m_unsigned_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
 
-def test_m_long_long_repr_big_endian():
-    assert repr(s5.m_long_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
+def test_m_long_long_str_big_endian():
+    assert str(s5.m_long_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
 
-def test_m_unsigned_long_long_repr_big_endian():
-    assert repr(s5.m_unsigned_long_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
+def test_m_unsigned_long_long_str_big_endian():
+    assert str(s5.m_unsigned_long_long) == "\xFF\xFF\xFF\x80\x00\x00\x11\x00"
 
-def test_m_float_repr_big_endian():
-    assert repr(s5.m_float) == "\x00\x00\x11\x22"
+def test_m_float_str_big_endian():
+    assert str(s5.m_float) == "\x00\x00\x11\x22"
 
-def test_m_double_repr_big_endian():
-    assert repr(s5.m_double) == "\x00\xFF\xFF\x80\x00\x00\x33\x00"
+def test_m_double_str_big_endian():
+    assert str(s5.m_double) == "\x00\xFF\xFF\x80\x00\x00\x33\x00"
 
-def test_m_string_repr_big_endian():
-    assert repr(s5.m_string) == "AAAAAAAAAAAAAABB"
+def test_m_string_str_big_endian():
+    assert str(s5.m_string) == "AAAAAAAAAAAAAABB"
 
-def test_m_void_p_repr_big_endian():
-    assert repr(s5.m_void_p) == "\xFF\xFF\xFF\x80\x00\x00\x44\x00"
+def test_m_void_p_str_big_endian():
+    assert str(s5.m_void_p) == "\xFF\xFF\xFF\x80\x00\x00\x44\x00"
 
-def test_m_char_p_repr_big_endian():
-    assert repr(s5.m_char_p) == "\xFF\xFF\xFF\x80\x00\x00\x55\x00"
+def test_m_char_p_str_big_endian():
+    assert str(s5.m_char_p) == "\xFF\xFF\xFF\x80\x00\x00\x55\x00"
 
-def test_m_uint32_t_repr_big_endian():
-    assert repr(s5.m_uint32_t) == "\x00\x00\x11\x00"
+def test_m_uint32_t_str_big_endian():
+    assert str(s5.m_uint32_t) == "\x00\x00\x11\x00"
 
-def test_m_UINT32_repr_big_endian():
-    assert repr(s5.m_UINT32) == "\x00\x00\x22\x00"
+def test_m_UINT32_str_big_endian():
+    assert str(s5.m_UINT32) == "\x00\x00\x22\x00"
 
 # test file read/write
 
 def test_file_read():
-    assert repr(s7) == DATA
+    assert str(s7) == DATA
 
 def test_file_write():
     f = open("tests/test2.bin", "w+b")
@@ -639,10 +677,10 @@ def test_file_write():
 # test nested structs
 
 def test_nested_m_void_p():
-    assert repr(s8.m_void_p) == "BBBBBBBB"
+    assert str(s8.m_void_p) == "BBBBBBBB"
 
 def test_nested_m_uint32_t():
-    assert repr(s8.m_uint32_t) == "CCCC"
+    assert str(s8.m_uint32_t) == "CCCC"
 
 def test_nested_size():
     assert s8.size == 32
@@ -654,10 +692,10 @@ def test_nested_m_nest_size():
     assert s8.m_nest.size == 20
 
 def test_nested_m_nest_m1():
-    assert repr(s8.m_nest.m1) == "DDDD"
+    assert str(s8.m_nest.m1) == "DDDD"
 
 def test_nested_m_nest_m2():
-    assert repr(s8.m_nest.m2) == "EEEEEEEE"
+    assert str(s8.m_nest.m2) == "EEEEEEEE"
 
 def test_nested_m_nest_m3():
     assert type(s8.m_nest.m3) == Structure
@@ -679,5 +717,111 @@ def test_nested_m_nest_m3_n2():
 
 def test_nested_m_nest_m3_n2_value():
     assert s8.m_nest.m3.n2.value == 0x47474747
+
+# test union
+
+
+
+# test structure set
+
+def test_struct_set():
+    assert len(ss.decls) == 2
+
+def test_struct_set_decl():
+    assert type(ss.decls[0]) == pycparser.c_ast.Struct
+
+def test_struct_set_decl_named():
+    assert type(ss.decl_named('Test')) == pycparser.c_ast.Struct
+
+def test_struct_set_struct_named():
+    assert ss.struct_named('Test').__name__ == 'Test'
+
+def test_struct_set_m_void_p():
+    assert str(s10.m_void_p) == "BBBBBBBB"
+
+def test_struct_set_m_uint32_t():
+    assert str(s10.m_uint32_t) == "CCCC"
+
+def test_struct_set_size():
+    assert s10.size == 32
+
+def test_struct_set_m_nest():
+    assert type(s10.m_nest) == Structure
+
+def test_struct_set_m_nest_size():
+    assert s10.m_nest.size == 20
+
+def test_struct_set_m_nest_m1():
+    assert str(s10.m_nest.m1) == "DDDD"
+
+def test_struct_set_m_nest_m2():
+    assert str(s10.m_nest.m2) == "EEEEEEEE"
+
+def test_struct_set_m_nest_m3():
+    assert type(s10.m_nest.m3) == Structure
+
+def test_struct_set_m_nest_m3_size():
+    assert s10.m_nest.m3.size ==  8
+
+def test_struct_set_m_nest_m3_n1():
+    assert type(s10.m_nest.m3.n1) == StructureMember
+
+def test_struct_set_m_nest_m3_n1_size():
+    assert s10.m_nest.m3.n1.size == 4
+
+def test_struct_set_m_nest_m3_n1_value():
+    assert s10.m_nest.m3.n1.value == 0x46464646
+
+def test_struct_set_m_nest_m3_n2():
+    assert type(s10.m_nest.m3.n2) == StructureMember
+
+def test_struct_set_m_nest_m3_n2_value():
+    assert s10.m_nest.m3.n2.value == 0x47474747
+
+def test_struct_set_all_structs():
+    assert len(ss.all_structs()) == 2
+
+
+def test_struct_set_all_structs_m_void_p():
+    assert str(s11.m_void_p) == "BBBBBBBB"
+
+def test_struct_set_all_structs_m_uint32_t():
+    assert str(s11.m_uint32_t) == "CCCC"
+
+def test_struct_set_all_structs_size():
+    assert s11.size == 32
+
+def test_struct_set_all_structs_m_nest():
+    assert type(s11.m_nest) == Structure
+
+def test_struct_set_all_structs_m_nest_size():
+    assert s11.m_nest.size == 20
+
+def test_struct_set_all_structs_m_nest_m1():
+    assert str(s11.m_nest.m1) == "DDDD"
+
+def test_struct_set_all_structs_m_nest_m2():
+    assert str(s11.m_nest.m2) == "EEEEEEEE"
+
+def test_struct_set_all_structs_m_nest_m3():
+    assert type(s11.m_nest.m3) == Structure
+
+def test_struct_set_all_structs_m_nest_m3_size():
+    assert s11.m_nest.m3.size ==  8
+
+def test_struct_set_all_structs_m_nest_m3_n1():
+    assert type(s11.m_nest.m3.n1) == StructureMember
+
+def test_struct_set_all_structs_m_nest_m3_n1_size():
+    assert s11.m_nest.m3.n1.size == 4
+
+def test_struct_set_all_structs_m_nest_m3_n1_value():
+    assert s11.m_nest.m3.n1.value == 0x46464646
+
+def test_struct_set_all_structs_m_nest_m3_n2():
+    assert type(s11.m_nest.m3.n2) == StructureMember
+
+def test_struct_set_all_structs_m_nest_m3_n2_value():
+    assert s11.m_nest.m3.n2.value == 0x47474747
 
 

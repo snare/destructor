@@ -159,7 +159,7 @@ class StructureMember(object):
         else:
             raise Exception("Unknown type '%s'" % type_name)
 
-    def __repr__(self):
+    def __str__(self):
         return self.packed
 
     @property
@@ -196,7 +196,11 @@ class StructureMember(object):
 
     @property
     def packed(self):
-        return struct.pack(self.format, self.value)
+        if type(self.value) == list:
+            data = struct.pack(self.format, *self.value)
+        else:
+            data = struct.pack(self.format, self.value)
+        return data
 
     def read(self, input):
         if type(input) == str:
@@ -206,7 +210,9 @@ class StructureMember(object):
         self.parse(data)
 
     def parse(self, data, offset=0):
-        self.value = struct.unpack(self.format, data[offset:offset+self.size])[0]
+        self.value = list(struct.unpack(self.format, data[offset:offset+self.size]))
+        if len(self.value) == 1:
+            self.value = self.value[0]
 
     def write(self, output):
         output.write(self.packed)
@@ -220,25 +226,25 @@ class Structure(object):
     _members = {}
     _endian = ENDIAN_LITTLE
 
-    source = None
-    name = None
+    _source = None
+    _name = None
 
-    def __init__(self, source=None, filename=None, decl=None, ast=None, mode=MODE_LP64, endian=ENDIAN_LITTLE):
+    def __init__(self, binary=None, source=None, filename=None, decl=None, ast=None, mode=MODE_LP64, endian=ENDIAN_LITTLE):
         self._endian = endian
 
         # if we didn't have any source provided by our subclass, override it with what was passed to __init__()
-        if not self.source:
-            self.source = source
+        if not self._source:
+            self._source = source
 
         # parse source/file if we got some
-        if self.source or filename:
+        if self._source or filename:
             # create a structure set
-            self._ss = StructureSet(source=self.source, filename=filename)
+            self._ss = StructureSet(source=self._source, filename=filename)
             ast = self._ss.ast
             
             # find the structure by name if one was given
-            if self.name:
-                decl = self._ss.decl_named(self.name)
+            if self._name:
+                decl = self._ss.decl_named(self._name)
                 if not decl:
                     raise NameError("No struct declaration was found named '%s'" % self.name)
             else:
@@ -248,18 +254,28 @@ class Structure(object):
                 except IndexError:
                     raise IndexError("No struct declaration was found")
 
-        # keep references to our ast and decl
-        self._ast = ast
-        self._decl = decl
+        # keep references to our ast and decl. check if we don't aready have them, as we may have if this came from
+        # a StructureSet
+        if not self._ast:
+            self._ast = ast
+        if not self._decl:
+            self._decl = decl
 
         # find any typedefs we might need
-        self._tr = TypeResolver(ast)
+        self._tr = TypeResolver(self._ast)
 
         # parse the declarator for our member info
-        self.parse_decl(decl, mode)
+        self.parse_decl(self._decl, mode)
 
-    def __repr__(self):
-        return ''.join([repr(m) for m in self._members_ord])
+        # if we got a binary, parse it
+        if binary:
+            if type(binary) == str:
+                self.parse(binary)
+            else:
+                self.read(binary)
+
+    def __str__(self):
+        return ''.join([str(m) for m in self._members_ord])
 
     @property
     def size(self):
@@ -388,11 +404,12 @@ class StructureSet(object):
     def struct_named(self, name):
         decl = self.decl_named(name);
         if decl:
-            st = Structure(decl)
+            st = type(name, (Structure,), {'_decl': decl, '_ast': self.ast, '_name': name, '_ss': self})
         else:
             st = None
         return st
 
     def all_structs(self):
-        return [Structure(decl) for decl in self.decls]
+        return [type(decl.name, (Structure,), 
+                    {'_decl': decl, '_ast': self.ast, '_name': decl.name, '_ss': self}) for decl in self.decls]
 
