@@ -260,6 +260,8 @@ class Structure(object):
             self._ast = ast
         if not self._decl:
             self._decl = decl
+        if not self._name:
+            self._name = self._decl.name
 
         # find any typedefs we might need
         self._tr = TypeResolver(self._ast)
