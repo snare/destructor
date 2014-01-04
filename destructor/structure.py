@@ -351,7 +351,7 @@ class Structure(object):
             elif type(node.type) == pycparser.c_ast.Struct:
                 raise NotImplementedError("Nested structs aren't supported yet")
             else:
-                raise Exception("Unexpected node")
+                raise Exception("Unexpected node of type: %s" % (str(node.type)))
             index += 1
 
     def __getattr__(self, name):
