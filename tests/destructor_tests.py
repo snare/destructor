@@ -75,6 +75,19 @@ struct Test {
 };
 """
 
+ANONSTRUCT = TYPEDEFS + """
+struct {
+    uint32_t            m1;
+    uint64_t            m2;
+};
+"""
+
+ANONDATA = (
+    "\x43\x43\x43\x43"
+    "\x42\x42\x42\x42\x42\x42\x42\x42"
+)
+
+
 MULTIDATA = (
     "\x42\x42\x42\x42\x42\x42\x42\x42"
     "\x43\x43\x43\x43"
@@ -121,9 +134,11 @@ class TestNestUnion(Structure):
     _source = UNION
     _name = "Test"
 
+class TestStructAnon(Structure):
+    _source = ANONSTRUCT
 
 def setup():
-    global s1, s2, s3, s4, s5, s6, s7, s8, s9, ss, s10, s11
+    global s1, s2, s3, s4, s5, s6, s7, s8, s9, ss, s10, s11, sanon
     s1 = Structure(source=STRUCT)
     s2 = Structure(source=STRUCT, mode=MODE_ILP32)
     s3 = TestStruct()
@@ -157,6 +172,9 @@ def setup():
     classes = ss.all_structs()
     s11 = classes[1]()
     s11.parse(MULTIDATA)
+
+    sanon = TestStructAnon()
+    sanon.parse(ANONDATA)
 
 
 def teardown():

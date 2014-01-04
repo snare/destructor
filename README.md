@@ -15,7 +15,7 @@
 Create a subclass of the `Structure` class, and set `source` to the structure definition (along with any required typedefs).
 
     >>> class TestStruct(Structure):
-    ...     source = """
+    ...     _source = """
     ...     typedef unsigned int    uint32_t;
     ...     typedef uint32_t        UINT32;
     ...     struct Test {

@@ -34,7 +34,7 @@ class NodeCollector(c_ast.NodeVisitor):
     def __init__(self, cls):
         self.nodes = []
         self.cls = cls
-        
+
     def visit_collect(self, node):
         if type(node) is self.cls:
             self.nodes.append(node)
@@ -164,7 +164,7 @@ class StructureMember(object):
 
     @property
     def size(self):
-        return self._size * self._array_len        
+        return self._size * self._array_len
 
     @property
     def format(self):
@@ -241,7 +241,7 @@ class Structure(object):
             # create a structure set
             self._ss = StructureSet(source=self._source, filename=filename)
             ast = self._ss.ast
-            
+
             # find the structure by name if one was given
             if self._name:
                 decl = self._ss.decl_named(self._name)
@@ -260,6 +260,8 @@ class Structure(object):
             self._ast = ast
         if not self._decl:
             self._decl = decl
+        if not self._name:
+            self._name = self._decl.name
 
         # find any typedefs we might need
         self._tr = TypeResolver(self._ast)
@@ -324,7 +326,7 @@ class Structure(object):
                     type_name = self._tr.name_for_type(t)
 
                     # instantiate the member
-                    member = StructureMember(name=node.name, node=node, type_name=type_name, mode=mode, 
+                    member = StructureMember(name=node.name, node=node, type_name=type_name, mode=mode,
                                              endian=self._endian)
 
                 # store the new member
@@ -347,9 +349,9 @@ class Structure(object):
                 self._members[node.name] = member
                 self._members_ord.append(member)
             elif type(node.type) == pycparser.c_ast.Struct:
-                raise Exception("Nested structs aren't supported yet")
+                raise NotImplementedError("Nested structs aren't supported yet")
             else:
-                raise Exception("Unexpected node")
+                raise Exception("Unexpected node of type: %s" % (str(node.type)))
             index += 1
 
     def __getattr__(self, name):
@@ -360,7 +362,7 @@ class Structure(object):
         infile.seek(offset)
         for m in self._members_ord:
             m.read(infile)
-    
+
     def parse(self, data, offset=0):
         for m in self._members_ord:
             m.parse(data, offset)
@@ -374,7 +376,7 @@ class Structure(object):
 
 class StructureSet(object):
     """
-    A set of structures. Hand this class a header file and then retrieve 
+    A set of structures. Hand this class a header file and then retrieve
     Structure objects by name.
     """
     def __init__(self, source=None, filename=None):
@@ -410,6 +412,6 @@ class StructureSet(object):
         return st
 
     def all_structs(self):
-        return [type(decl.name, (Structure,), 
+        return [type(decl.name, (Structure,),
                     {'_decl': decl, '_ast': self.ast, '_name': decl.name, '_ss': self}) for decl in self.decls]
 
