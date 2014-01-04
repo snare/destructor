@@ -349,7 +349,7 @@ class Structure(object):
                 self._members[node.name] = member
                 self._members_ord.append(member)
             elif type(node.type) == pycparser.c_ast.Struct:
-                raise Exception("Nested structs aren't supported yet")
+                raise NotImplementedError("Nested structs aren't supported yet")
             else:
                 raise Exception("Unexpected node")
             index += 1
